@@ -23,6 +23,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 class EntityIndexerRegistry
 {
     final public const EXTENSION_INDEXER_SKIP = 'indexer-skip';
+    final public const EXTENSION_INDEXER_ONLY = 'indexer-only';
 
     final public const USE_INDEXING_QUEUE = 'use-queue-indexing';
 
@@ -145,7 +146,13 @@ class EntityIndexerRegistry
 
             $message->setIndexer($indexer->getName());
             $message->isFullIndexing = false;
-            self::addSkips($message, $context);
+
+            if ($context->hasExtension(self::EXTENSION_INDEXER_SKIP)) {
+                self::addSkips($message, $context);
+            }
+            if ($context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
+                self::addOnlies($message, $indexer->getOptions(), $context);
+            }
 
             $this->sendOrHandle($message, $useQueue);
         }
@@ -164,6 +171,23 @@ class EntityIndexerRegistry
         }
 
         $message->addSkip(...$skip->get('skips'));
+    }
+
+    /**
+     * @param array<string> $options
+     */
+    public static function addOnlies(EntityIndexingMessage $message, array $options, Context $context): void
+    {
+        if (!$context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
+            return;
+        }
+        $onlies = $context->getExtension(self::EXTENSION_INDEXER_ONLY);
+        if (!$onlies instanceof ArrayEntity) {
+            return;
+        }
+        $skip = array_diff($options, $onlies->all());
+
+        $message->setSkip($skip);
     }
 
     /**
