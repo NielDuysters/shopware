@@ -135,4 +135,25 @@ class EntityIndexerRegistryTest extends TestCase
 
         $this->registry->refresh($eventMock);
     }
+
+    public function testAddOnliesAddsCorrectSkips(): void
+    {
+        $context = Context::createDefaultContext();
+        $messageMock = $this->createMock(EntityIndexingMessage::class);
+
+        $onlyEntities = new ArrayEntity(['indexer1', 'indexer4']);
+        $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY, $onlyEntities);
+
+        $options = ['indexer1', 'indexer2', 'indexer3', 'indexer4'];
+
+        $messageMock->expects($this->once())
+        ->method('setSkip')
+        ->with(static::callback(function (array $skips) {
+            sort($skips);
+
+            return $skips === ['indexer2', 'indexer3'];
+        }));
+
+        EntityIndexerRegistry::addOnlies($messageMock, $options, $context);
+    }
 }
