@@ -147,12 +147,8 @@ class EntityIndexerRegistry
             $message->setIndexer($indexer->getName());
             $message->isFullIndexing = false;
 
-            if ($context->hasExtension(self::EXTENSION_INDEXER_SKIP)) {
-                self::addSkips($message, $context);
-            }
-            if ($context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
-                self::addOnlies($message, $indexer->getOptions(), $context);
-            }
+            self::addSkips($message, $context);
+            self::addOnlies($message, $indexer->getOptions(), $context);
 
             $this->sendOrHandle($message, $useQueue);
         }
