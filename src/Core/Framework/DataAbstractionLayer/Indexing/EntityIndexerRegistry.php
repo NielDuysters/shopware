@@ -177,11 +177,11 @@ class EntityIndexerRegistry
         if (!$context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
             return;
         }
-        $onlies = $context->getExtension(self::EXTENSION_INDEXER_ONLY);
-        if (!$onlies instanceof ArrayEntity) {
+        $only = $context->getExtension(self::EXTENSION_INDEXER_ONLY);
+        if (!$only instanceof ArrayEntity) {
             return;
         }
-        $skip = array_diff($options, $onlies->all());
+        $skip = array_diff($options, $only->all());
 
         $message->setSkip($skip);
     }
