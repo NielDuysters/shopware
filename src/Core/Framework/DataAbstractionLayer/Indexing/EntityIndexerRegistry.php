@@ -166,7 +166,10 @@ class EntityIndexerRegistry
             return;
         }
 
-        $message->addSkip(...$skip->get('skips'));
+        /** @var array<string> $skip */
+        $skip = $skip->get('skips');
+
+        $message->addSkip(...$skip);
     }
 
     /**
