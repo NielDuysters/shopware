@@ -5,4 +5,9 @@ author_email: niel.duysters@meteor.be
 author_github: @nielduysters
 ---
 # Core
-* Added `EntityIndexerRegistry::EXTENSION_INDEXER_ONLY` to the `EntityIndexerRegistry` to allow specific indexes.
+* Added `EntityIndexerRegistry::EXTENSION_INDEXER_ONLY` to the `EntityIndexerRegistry` to allow specific indexers.
+
+# Upgrade Information
+
+## Add possibility to specify indexer in tontext
+< Add some information and how to use it here>
