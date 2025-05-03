@@ -110,9 +110,11 @@ class EntityIndexerRegistryTest extends TestCase
         $eventMock = $this->createMock(EntityWrittenContainerEvent::class);
         $context = Context::createDefaultContext();
         $skipEntity = new ArrayEntity(['skips' => ['skip1', 'skip2']]);
+        $onlyEntity = new ArrayEntity(['onlies' => ['skip1', 'skip3', 'skip4']]);
         $messageMock = $this->createMock(EntityIndexingMessage::class);
 
         $this->indexerMock1->method('getName')->willReturn('indexer1');
+        $this->indexerMock1->method('getOptions')->willReturn(['skip1', 'skip2', 'skip3', 'skip4', 'skip5']);
         $this->indexerMock2->method('getName')->willReturn('indexer2');
 
         $eventMock->expects($this->once())
@@ -120,6 +122,7 @@ class EntityIndexerRegistryTest extends TestCase
             ->willReturn($context);
 
         $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_SKIP, $skipEntity);
+        $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY, $onlyEntity);
 
         $this->indexerMock1->expects($this->once())
             ->method('update')
@@ -129,6 +132,17 @@ class EntityIndexerRegistryTest extends TestCase
         $messageMock->expects($this->once())
             ->method('setIndexer')
             ->with('indexer1');
+
+        $messageMock
+            ->method('setSkip')
+            ->with(static::callback(
+                static function (array $skips) {
+                    sort($skips);
+
+                    return $skips === ['skip2', 'skip5'];
+                }
+            ));
+
         $messageMock->expects($this->once())
             ->method('addSkip')
             ->with('skip1', 'skip2');
@@ -141,18 +155,19 @@ class EntityIndexerRegistryTest extends TestCase
         $context = Context::createDefaultContext();
         $messageMock = $this->createMock(EntityIndexingMessage::class);
 
-        $onlyEntities = new ArrayEntity(['indexer1', 'indexer4']);
-        $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY, $onlyEntities);
-
-        $options = ['indexer1', 'indexer2', 'indexer3', 'indexer4'];
+        $options = ['indexer1', 'indexer2', 'indexer3', 'indexer4', 'indexer5', 'indexer6'];
+        $onlyIndexer = new ArrayEntity(['onlies' => ['indexer1', 'indexer3', 'indexer4']]);
+        $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY, $onlyIndexer);
 
         $messageMock->expects($this->once())
-        ->method('setSkip')
-        ->with(static::callback(function (array $skips) {
-            sort($skips);
+            ->method('setSkip')
+            ->with(static::callback(
+                static function (array $skips) {
+                    sort($skips);
 
-            return $skips === ['indexer2', 'indexer3'];
-        }));
+                    return $skips === ['indexer2', 'indexer5', 'indexer6'];
+                }
+            ));
 
         EntityIndexerRegistry::addOnlies($messageMock, $options, $context);
     }

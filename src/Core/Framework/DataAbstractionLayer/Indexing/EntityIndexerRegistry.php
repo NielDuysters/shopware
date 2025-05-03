@@ -147,8 +147,8 @@ class EntityIndexerRegistry
             $message->setIndexer($indexer->getName());
             $message->isFullIndexing = false;
 
-            self::addSkips($message, $context);
             self::addOnlies($message, $indexer->getOptions(), $context);
+            self::addSkips($message, $context);
 
             $this->sendOrHandle($message, $useQueue);
         }
@@ -184,9 +184,11 @@ class EntityIndexerRegistry
         if (!$only instanceof ArrayEntity) {
             return;
         }
-        $skip = array_diff($options, $only->all());
 
-        $message->setSkip($skip);
+        /** @var array<string> $only */
+        $only = $only->get('onlies');
+
+        $message->setSkip(array_diff($options, $only));
     }
 
     /**
