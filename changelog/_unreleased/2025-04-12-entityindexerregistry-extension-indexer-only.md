@@ -1,6 +1,5 @@
 ---
 title: Add EntityIndexerRegistry::EXTENSION_INDEXER_ONLY
-issue: N/A
 author: Niel Duysters
 author_email: niel.duysters@meteor.be
 author_github: @nielduysters
