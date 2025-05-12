@@ -9,5 +9,5 @@ author_github: @nielduysters
 
 # Upgrade Information
 
-## Add possibility to specify indexer in tontext
+## Add possibility to specify indexer in context
 < Add some information and how to use it here>
