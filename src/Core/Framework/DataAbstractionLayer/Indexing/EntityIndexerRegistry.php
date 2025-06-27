@@ -147,7 +147,7 @@ class EntityIndexerRegistry
             $message->setIndexer($indexer->getName());
             $message->isFullIndexing = false;
 
-            self::addOnlies($message, $indexer->getOptions(), $context);
+            self::addOnlyAllowedIndices($message, $indexer->getOptions(), $context);
             self::addSkips($message, $context);
 
             $this->sendOrHandle($message, $useQueue);
@@ -175,7 +175,7 @@ class EntityIndexerRegistry
     /**
      * @param array<string> $options
      */
-    public static function addOnlies(EntityIndexingMessage $message, array $options, Context $context): void
+    public static function addOnlyAllowedIndices(EntityIndexingMessage $message, array $options, Context $context): void
     {
         if (!$context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
             return;

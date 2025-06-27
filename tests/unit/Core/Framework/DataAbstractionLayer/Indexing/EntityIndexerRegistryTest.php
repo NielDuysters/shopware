@@ -169,6 +169,6 @@ class EntityIndexerRegistryTest extends TestCase
                 }
             ));
 
-        EntityIndexerRegistry::addOnlies($messageMock, $options, $context);
+        EntityIndexerRegistry::addOnlyAllowedIndices($messageMock, $options, $context);
     }
 }
