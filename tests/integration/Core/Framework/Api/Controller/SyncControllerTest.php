@@ -488,6 +488,41 @@ class SyncControllerTest extends TestCase
         static::assertSame(0, $count, 'Search keywords should be empty as we skipped it');
     }
 
+    public function testOnlyIndexer(): void
+    {
+        $id1 = Uuid::randomHex();
+        $data = [
+            [
+                'action' => SyncController::ACTION_UPSERT,
+                'entity' => ProductDefinition::ENTITY_NAME,
+                'payload' => [
+                    [
+                        'id' => $id1,
+                        'productNumber' => Uuid::randomHex(),
+                        'stock' => 1,
+                        'manufacturer' => ['name' => 'test'],
+                        'description' => 'This is a detailed product used to test search indexing.',
+                        'tax' => ['name' => 'test', 'taxRate' => 15],
+                        'name' => 'CREATE-1',
+                        'price' => [['currencyId' => Defaults::CURRENCY, 'gross' => 50, 'net' => 25, 'linked' => false]],
+                    ],
+                ],
+            ],
+        ];
+
+        $headers = [
+            'HTTP_' . PlatformRequest::HEADER_INDEXING_ONLY => ProductIndexer::SEARCH_KEYWORD_UPDATER,
+        ];
+        $this->getBrowser()->request('POST', '/api/_action/sync', [], [], $headers, json_encode($data, \JSON_THROW_ON_ERROR));
+
+        static::assertSame(200, $this->getBrowser()->getResponse()->getStatusCode());
+
+        $connection = static::getContainer()->get(Connection::class);
+
+        $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM product_search_keyword WHERE product_id = ?', [Uuid::fromHexToBytes($id1)]);
+        static::assertGreaterThan(0, $count, 'Search keywords should not empty as we did not skip it');
+    }
+
     public static function invalidOperationProvider(): \Generator
     {
         yield 'Invalid entity argument' => [
