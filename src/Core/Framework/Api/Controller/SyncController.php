@@ -47,9 +47,13 @@ class SyncController extends AbstractController
         /** @var list<string> $indexingSkips */
         $indexingSkips = array_filter(explode(',', (string) $request->headers->get(PlatformRequest::HEADER_INDEXING_SKIP, '')));
 
+        /** @var list<string> $indexingOnlies */
+        $indexingOnlies = array_filter(explode(',', (string) $request->headers->get(PlatformRequest::HEADER_INDEXING_ONLY, '')));
+
         $behavior = new SyncBehavior(
             $request->headers->get(PlatformRequest::HEADER_INDEXING_BEHAVIOR),
-            $indexingSkips
+            $indexingSkips,
+            $indexingOnlies
         );
 
         try {

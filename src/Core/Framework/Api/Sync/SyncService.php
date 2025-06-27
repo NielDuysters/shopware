@@ -47,6 +47,9 @@ class SyncService implements SyncServiceInterface
         if (\count($behavior->getSkipIndexers())) {
             $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_SKIP, new ArrayEntity(['skips' => $behavior->getSkipIndexers()]));
         }
+        if (\count($behavior->getSkipOnlies())) {
+            $context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY, new ArrayEntity(['onlies' => $behavior->getSkipOnlies()]));
+        }
 
         if (
             $behavior->getIndexingBehavior() !== null
