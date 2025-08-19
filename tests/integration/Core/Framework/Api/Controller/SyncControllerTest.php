@@ -520,7 +520,7 @@ class SyncControllerTest extends TestCase
         $connection = static::getContainer()->get(Connection::class);
 
         $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM product_search_keyword WHERE product_id = ?', [Uuid::fromHexToBytes($id1)]);
-        static::assertGreaterThan(0, $count, 'Search keywords should not empty as we did not skip it');
+        static::assertGreaterThan(0, $count, 'Search keywords should not empty as it was the only called indexer');
     }
 
     public static function invalidOperationProvider(): \Generator
