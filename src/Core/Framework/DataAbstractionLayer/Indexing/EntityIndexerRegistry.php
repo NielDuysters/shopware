@@ -3,6 +3,7 @@
 namespace Shopware\Core\Framework\DataAbstractionLayer\Indexing;
 
 use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\DataAbstractionLayerException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenContainerEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Indexing\MessageQueue\FullEntityIndexerMessage;
 use Shopware\Core\Framework\DataAbstractionLayer\Indexing\MessageQueue\IterateEntityIndexerMessage;
@@ -147,7 +148,7 @@ class EntityIndexerRegistry
             $message->setIndexer($indexer->getName());
             $message->isFullIndexing = false;
 
-            self::addOnlyAllowedIndices($message, $indexer->getOptions(), $context);
+            self::addOnlyAllowedIndexers($message, $indexer->getOptions(), $context);
             self::addSkips($message, $context);
 
             $this->sendOrHandle($message, $useQueue);
@@ -175,7 +176,7 @@ class EntityIndexerRegistry
     /**
      * @param array<string> $options
      */
-    public static function addOnlyAllowedIndices(EntityIndexingMessage $message, array $options, Context $context): void
+    public static function addOnlyAllowedIndexers(EntityIndexingMessage $message, array $options, Context $context): void
     {
         if (!$context->hasExtension(self::EXTENSION_INDEXER_ONLY)) {
             return;
@@ -211,7 +212,7 @@ class EntityIndexerRegistry
         foreach ($indexer as $name) {
             $instance = $this->getIndexer($name);
 
-            // skip "one-time" indexer which should only be triggered after an update
+            // skip "one-time" indexers which should only be triggered after an update
             if (!$postUpdate && $instance instanceof PostUpdateIndexer) {
                 continue;
             }
@@ -277,7 +278,7 @@ class EntityIndexerRegistry
         $indexer = $this->getIndexer($name);
 
         if (!$indexer instanceof EntityIndexer) {
-            throw new \RuntimeException(\sprintf('Entity indexer with name %s not found', $name));
+            throw DataAbstractionLayerException::entityIndexerNotFound($name);
         }
 
         $message = $indexer->iterate($offset);
