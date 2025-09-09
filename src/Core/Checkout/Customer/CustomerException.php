@@ -17,6 +17,8 @@ use Shopware\Core\Checkout\Customer\Exception\DuplicateWishlistProductException;
 use Shopware\Core\Checkout\Customer\Exception\InvalidImitateCustomerTokenException;
 use Shopware\Core\Checkout\Customer\Exception\PasswordPoliciesUpdatedException;
 use Shopware\Core\Checkout\Customer\Validation\Constraint\CustomerEmailUnique;
+use Shopware\Core\Checkout\Order\Exception\GuestNotAuthenticatedException;
+use Shopware\Core\Checkout\Order\Exception\WrongGuestCredentialsException;
 use Shopware\Core\Content\Product\Exception\ProductNotFoundException;
 use Shopware\Core\Framework\Feature;
 use Shopware\Core\Framework\HttpException;
@@ -28,6 +30,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
+use Symfony\Component\Validator\Exception\ValidatorException;
 
 #[Package('checkout')]
 class CustomerException extends HttpException
@@ -73,6 +77,7 @@ class CustomerException extends HttpException
     public const UNEXPECTED_TYPE = 'CHECKOUT__UNEXPECTED_TYPE';
     public const MISSING_OPTION = 'CONTENT__MISSING_OPTION';
     public const INVALID_OPTION = 'CONTENT__INVALID_OPTION';
+    public const REGISTERED_CUSTOMER_CANNOT_BE_CONVERTED = 'CHECKOUT__REGISTERED_CUSTOMER_CANNOT_BE_CONVERTED';
 
     public static function customerGroupNotFound(string $id): self
     {
@@ -434,5 +439,35 @@ class CustomerException extends HttpException
             'Option "{{ option }}" must be of type "{{ type }}" for constraint {{ constraint }}',
             ['option' => $option, 'type' => $type, 'constraint' => $constraint]
         );
+    }
+
+    public static function registeredCustomerCannotBeConverted(string $customerId): self
+    {
+        return new self(
+            Response::HTTP_BAD_REQUEST,
+            self::REGISTERED_CUSTOMER_CANNOT_BE_CONVERTED,
+            'Customer with id "{{ customerId }}" is not a guest',
+            ['customerId' => $customerId],
+        );
+    }
+
+    public static function guestNotAuthenticated(): GuestNotAuthenticatedException
+    {
+        return new GuestNotAuthenticatedException();
+    }
+
+    public static function wrongGuestCredentials(): WrongGuestCredentialsException
+    {
+        return new WrongGuestCredentialsException();
+    }
+
+    public static function unexpectedConstraintType(Constraint $constraint, string $expectedType): ValidatorException
+    {
+        return new UnexpectedTypeException($constraint, $expectedType);
+    }
+
+    public static function unexpectedConstraintValue(mixed $value, string $expectedType): ValidatorException
+    {
+        return new UnexpectedValueException($value, $expectedType);
     }
 }

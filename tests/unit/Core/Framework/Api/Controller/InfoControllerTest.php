@@ -11,12 +11,17 @@ use Shopware\Core\Content\Flow\Api\FlowActionCollector;
 use Shopware\Core\Framework\Api\ApiDefinition\DefinitionService;
 use Shopware\Core\Framework\Api\Controller\InfoController;
 use Shopware\Core\Framework\Api\Route\ApiRouteInfoResolver;
-use Shopware\Core\Framework\App\Exception\AppUrlChangeDetectedException;
+use Shopware\Core\Framework\App\Exception\ShopIdChangeSuggestedException;
+use Shopware\Core\Framework\App\ShopId\FingerprintComparisonResult;
+use Shopware\Core\Framework\App\ShopId\ShopId;
 use Shopware\Core\Framework\App\ShopId\ShopIdProvider;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Event\BusinessEventCollector;
 use Shopware\Core\Framework\Increment\IncrementGatewayRegistry;
 use Shopware\Core\Framework\Log\Package;
+use Shopware\Core\Framework\MessageQueue\Stats\Entity\MessageStatsEntity;
+use Shopware\Core\Framework\MessageQueue\Stats\Entity\MessageStatsResponseEntity;
+use Shopware\Core\Framework\MessageQueue\Stats\Entity\MessageTypeStatsCollection;
 use Shopware\Core\Framework\MessageQueue\Stats\StatsService;
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\Store\InAppPurchase;
@@ -46,6 +51,14 @@ class InfoControllerTest extends TestCase
     private InAppPurchase $inAppPurchase;
 
     private ShopIdProvider&MockObject $shopIdProvider;
+
+    private StatsService&MockObject $statsService;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->statsService = $this->createMock(StatsService::class);
+    }
 
     public function testConfig(): void
     {
@@ -119,14 +132,14 @@ class InfoControllerTest extends TestCase
         static::assertSame(['SwagApp_premium'], $inAppPurchases['SwagApp']);
     }
 
-    public function testReturnsCurrentShopIdIfAppUrlChangeIsDetected(): void
+    public function testReturnsCurrentShopIdIfShopIdFingerprintsHaveChanged(): void
     {
         $this->createInstance();
 
         $this->shopIdProvider
             ->expects($this->once())
             ->method('getShopId')
-            ->willThrowException(new AppUrlChangeDetectedException('http://localhost', 'http://globalhost', 'current-shop-id'));
+            ->willThrowException(new ShopIdChangeSuggestedException(ShopId::v2('current-shop-id'), new FingerprintComparisonResult([], [], 75)));
 
         $response = $this->infoController->config(Context::createDefaultContext(), Request::create('http://localhost'));
 
@@ -136,6 +149,29 @@ class InfoControllerTest extends TestCase
         $data = json_decode($content, true);
         static::assertArrayHasKey('shopId', $data);
         static::assertSame('current-shop-id', $data['shopId']);
+    }
+
+    public function testMessageStatsPreservesFloatingPointPrecision(): void
+    {
+        $this->statsService->method('getStats')->willReturn(
+            new MessageStatsResponseEntity(
+                true,
+                new MessageStatsEntity(1, new \DateTime(), 1.00, new MessageTypeStatsCollection())
+            )
+        );
+        $this->createInstance();
+
+        $response = $this->infoController->messageStats();
+        $content = $response->getContent();
+        static::assertIsString($content);
+
+        $data = json_decode($content, true);
+        static::assertIsArray($data);
+        static::assertArrayHasKey('stats', $data);
+        static::assertArrayHasKey('averageTimeInQueue', $data['stats']);
+
+        // Check that the floating point precision is preserved for zero-padded decimal values
+        static::assertSame(1.00, $data['stats']['averageTimeInQueue']);
     }
 
     private function createInstance(): void
@@ -192,7 +228,7 @@ class InfoControllerTest extends TestCase
             ),
             new Filesystem(),
             $this->shopIdProvider,
-            $this->createMock(StatsService::class),
+            $this->statsService,
         );
     }
 }
