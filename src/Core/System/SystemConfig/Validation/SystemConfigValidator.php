@@ -99,14 +99,14 @@ class SystemConfigValidator
     /**
      * @param array<string, mixed> $elementConfig
      *
-     * @return array<int, Constraint>
+     * @return list<Constraint>
      */
     private function buildConstraintsWithConfigs(array $elementConfig, bool $allowNulls): array
     {
         /** @var array<string, callable(mixed): Constraint> $constraints */
         $constraints = [
-            'minLength' => fn (mixed $ruleValue) => new Assert\Length(min: $ruleValue),
-            'maxLength' => fn (mixed $ruleValue) => new Assert\Length(max: $ruleValue),
+            'minLength' => fn (mixed $ruleValue) => new Assert\Length(min: $ruleValue === null ? null : max(0, (int) $ruleValue)),
+            'maxLength' => fn (mixed $ruleValue) => new Assert\Length(max: $ruleValue === null ? null : max(1, (int) $ruleValue)),
             'min' => fn (mixed $ruleValue) => new Assert\Range(min: $ruleValue),
             'max' => fn (mixed $ruleValue) => new Assert\Range(max: $ruleValue),
             'dataType' => fn (mixed $ruleValue) => new Assert\Type($ruleValue),

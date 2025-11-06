@@ -1,4 +1,100 @@
 # 6.8.0.0
+## Introduced in 6.7.4.0
+
+## Removed SystemConfig exceptions
+
+The exceptions
+* `\Shopware\Core\System\SystemConfig\Exception\InvalidDomainException`,
+* `\Shopware\Core\System\SystemConfig\Exception\InvalidKeyException`, and
+* `\Shopware\Core\System\SystemConfig\Exception\InvalidSettingValueException`
+were removed.
+Use the respective factory methods in `\Shopware\Core\System\SystemConfig\SystemConfigException` instead.
+
+## Deprecated SystemConfigService tracing methods
+
+The methods `\Shopware\Core\System\SystemConfig\SystemConfigService::trace()` and `\Shopware\Core\System\SystemConfig\SystemConfigService::getTrace()` were removed.
+The tracing is not needed anymore since the cache rework for 6.7.0.0.
+
+## Filterable price definitions now require an explicit interface
+
+Previously, a price definition was treated as filterable when it implemented a `getFilter()` method. From now on, price definitions must explicitly implement the
+`Shopware\Core\Checkout\Cart\Price\Struct\FilterableInterface`, which defines the required `getFilter()` method.
+
+## Symfony validator is not used to validate the honeypot captcha
+
+The Symfony validator is not used to check the validity of the honeypot captcha, so if it was used to change the validity of the honeypot captcha, overwrite the `isValid` method of the honeypot captcha directly.
+
+## `CmsPageLoadedEvent::$result` now requires `CmsPageCollection` type
+
+The `$result` property of `Shopware\Core\Content\Cms\Events\CmsPageLoadedEvent` now enforces the `Shopware\Core\Content\Cms\CmsPageCollection` type instead of the generic `Shopware\Core\Framework\DataAbstractionLayer\EntityCollection`.
+
+The event constructor now requires `CmsPageCollection` explicitly, and `CmsPageLoadedEvent::getResult()` return type has changed from `EntityCollection` to `CmsPageCollection`.
+
+## Introduced in 6.7.3.0
+## Removal of deprecated controller variables
+The following will be removed in Shopware 6.8.0:
+* Twig variables `controllerName` and `controllerAction`
+* CSS classes `is-ctl-*` and `is-act-*`
+* JavaScript window properties `window.controllerName` and `window.actionName`
+## Removal of "sw-empty-state"
+* The old `sw-empty-state` component will be removed in the next major version. Please use the new `mt-empty-state` component instead.
+
+Before:
+```html
+<sw-empty-state title="short title" subline="longer subline" />
+```
+After:
+```html
+<mt-empty-state title="short title" description="longer description"/>
+```
+## Removal of properties in `ResolveRemoteThumbnailUrlExtension`
+
+The properties `$mediaPath` and `$mediaUpdatedAt` from `Shopware\Core\Content\Media\Extension\ResolveRemoteThumbnailUrlExtension` were removed. Set the values directly into the `mediaEntity` property.
+## Removal of `hasChildren` variable 
+
+The variable `hasChildren` is not set inside the `@Storefront/storefront/layout/navigation/offcanvas/item-link.html.twig` template anymore, as it should be set in the templates which include these templates. In the default templates this is done in the `@Storefront/storefront/layout/navigation/offcanvas/categories.html.twig` template.
+## Removal of `$options` parameter in custom validator's constraints
+
+The `$options` of all Shopware's custom validator constraint are removed, if you use one of them, please use named argument instead
+
+```php
+// Before:
+new CustomerEmailUnique(['salesChannelContext' => $context])
+```
+to
+
+```php
+new CustomerEmailUnique(salesChannelContext: $context)
+```
+
+Affected constraints are:
+
+```
+\Shopware\Core\Checkout\Customer\Validation\Constraint\CustomerEmailUnique
+\Shopware\Core\Checkout\Customer\Validation\Constraint\CustomerPasswordMatches
+\Shopware\Core\Checkout\Customer\Validation\Constraint\CustomerVatIdentification
+\Shopware\Core\Checkout\Customer\Validation\Constraint\CustomerZipCode
+\Shopware\Core\Framework\DataAbstractionLayer\Validation\EntityExists
+\Shopware\Core\Framework\DataAbstractionLayer\Validation\EntityNotExists
+```
+## Removal of `app:url-change:resolve` command alias
+* Use `app:shop-id:change` instead of `app:url-change:resolve`
+## Refactor of providing cookies
+
+The `\Shopware\Storefront\Framework\Cookie\CookieProviderInterface` and all its implementations were removed.
+Use the `\Shopware\Core\Content\Cookie\Event\CookieGroupCollectEvent` instead to register new cookie groups and cookie entries.
+The `snippet_name` and `snippet_description` properties on cookies in Twig templates have been removed.
+Use `name` and `description` instead.
+## Removal of `ZugferdDocument::getPrice()`
+The method `\Shopware\Core\Checkout\Document\Zugferd\ZugferdDocument::getPrice()` was removed, replace calls to `ZugferdDocument::getPrice()` with `ZugferdDocument::getPriceWithFallback()`.
+## Removed `TaskScheduler::getNextExecutionTime()`
+The `\Shopware\Core\Framework\MessageQueue\ScheduledTask\Scheduler\TaskScheduler::getNextExecutionTime()` method was not used anymore and was removed.
+
+## Snippet Validation command
+The command `snippets:validate` has been renamed to `translation:validate`.
+
+## SnippetValidator
+The class `Shopware\Core\System\Snippet\SnippetValidator` is now marked as internal and is supposed to be used for internal purposes only. Use on own risk as it may change without prior notice.
 
 ## Introduced in 6.7.2.0
 
@@ -347,6 +443,33 @@ Get the first order delivery with `primaryOrderDelivery` so you should replace m
 ## Use `primaryOrderTransaction`
 
 Get the latest order transaction with `primaryOrderTransaction` so you should replace methods like `transaction.last()`
+
+## Only rules relevant for product prices are considered in the `sw-cache-hash`
+In the default Shopware setup the `sw-cache-hash` cookie will only contain rule ids which are used to alter product prices, in contrast to previous all active rules, which might only be used for a promotion.
+
+If the Storefront content changes depending on a rule, the corresponding rule ids should be added using the extension `Shopware\Core\Framework\Adapter\Cache\Http\Extension\ResolveCacheRelevantRuleIdsExtension`. In the extension it is either possible to add specific rule ids directly or add them to the `ResolveCacheRelevantRuleIdsExtension::ruleAreas` array directly, i.e.
+
+```php
+class ResolveRuleIds implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            ResolveCacheRelevantRuleIdsExtension::NAME . '.pre' => 'onResolveRuleAreas',
+        ];
+    }
+
+    public function onResolveRuleAreas(ResolveCacheRelevantRuleIdsExtension $extension): void
+    {
+        $extension->ruleAreas[] = RuleExtension::MY_CUSTOM_RULE_AREA;
+    }
+}
+```
+
+If some custom entity has a relation to a rule, which might alter the storefront, you should add them to either an existing area, or your own are using the DAL flag `Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\RuleAreas` on the rule association.
+
+## Removed unused `RuleAreas` constants
+The constants `Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\RuleAreas::{CATEGORY_AREA,LANDING_PAGE_AREA}` are not used anymore and will therefore be removed
 
 ## Changed URL generation of `MediaUrlGenerator` to properly encode the file path to produce valid URLs
 * For example media files with spaces in their name now should be properly URL-encoded with `%20` by default, without doing URL-encoding only with the return value of the `MediaUrlGenerator`. Make sure to remove extra URL-encoding (e.g. usage of twig filter `encodeUrl`) on media entities to not accidentally double encode the URLs.

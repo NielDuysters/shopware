@@ -10,6 +10,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Exception\DefinitionNotFoundExc
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\EntityRepositoryNotFoundException;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\ImpossibleWriteOrderException;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InvalidAggregationQueryException;
+use Shopware\Core\Framework\DataAbstractionLayer\Exception\InvalidEntityUuidException;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InvalidFilterQueryException;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InvalidRangeFilterParamException;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InvalidSortQueryException;
@@ -47,6 +48,7 @@ class DataAbstractionLayerException extends HttpException
     public const INVALID_LANGUAGE_ID = 'FRAMEWORK__INVALID_LANGUAGE_ID';
     public const VERSION_NO_COMMITS_FOUND = 'FRAMEWORK__VERSION_NO_COMMITS_FOUND';
     public const VERSION_NOT_EXISTS = 'FRAMEWORK__VERSION_NOT_EXISTS';
+    public const ENTITY_NOT_VERSION_AWARE = 'FRAMEWORK__ENTITY_NOT_VERSION_AWARE';
     public const MIGRATION_STUB_NOT_FOUND = 'FRAMEWORK__MIGRATION_STUB_NOT_FOUND';
     public const MIGRATION_DIRECTORY_NOT_FOUND = 'FRAMEWORK__MIGRATION_DIRECTORY_NOT_FOUND';
     public const FIELD_TYPE_NOT_FOUND = 'FRAMEWORK__FIELD_TYPE_NOT_FOUND';
@@ -65,6 +67,7 @@ class DataAbstractionLayerException extends HttpException
     public const ATTRIBUTE_NOT_FOUND = 'FRAMEWORK__ATTRIBUTE_NOT_FOUND';
     public const EXPECTED_ARRAY_WITH_TYPE = 'FRAMEWORK__EXPECTED_ARRAY_WITH_TYPE';
     public const EXPECTED_FIELD_VALUE_TYPE_WITH_VALUE = 'FRAMEWORK__EXPECTED_FIELD_VALUE_TYPE_WITH_VALUE';
+    public const REPOSITORY_ITERATOR_EXPECTED_STRING_LAST_ID = 'FRAMEWORK__REPOSITORY_ITERATOR_EXPECTED_STRING_LAST_ID';
     public const INVALID_AGGREGATION_NAME = 'FRAMEWORK__INVALID_AGGREGATION_NAME';
     public const MISSING_FIELD_VALUE = 'FRAMEWORK__MISSING_FIELD_VALUE';
     public const NOT_CUSTOM_FIELDS_SUPPORT = 'FRAMEWORK__NOT_CUSTOM_FIELDS_SUPPORT';
@@ -93,6 +96,8 @@ class DataAbstractionLayerException extends HttpException
     public const UNSUPPORTED_QUERY_FILTER = 'FRAMEWORK__UNSUPPORTED_QUERY_FILTER';
     public const INVALID_SORT_DIRECTION = 'FRAMEWORK__INVALID_SORT_DIRECTION';
     public const PRODUCT_SEARCH_CONFIGURATION_NOT_FOUND = 'FRAMEWORK__PRODUCT_SEARCH_CONFIGURATION_NOT_FOUND';
+    public const ENTITY_NOT_VERSIONABLE = 'FRAMEWORK__DAL_ENTITY_NOT_VERSIONABLE';
+    public const INVALID_UUID = 'FRAMEWORK__DAL_INVALID_UUID';
 
     public const DBAL_UNMAPPED_FIELD = 'FRAMEWORK__DBAL_UNMAPPED_FIELD';
 
@@ -188,6 +193,15 @@ class DataAbstractionLayerException extends HttpException
         );
     }
 
+    public static function repositoryIteratorExpectedStringLastId(): self
+    {
+        return new self(
+            Response::HTTP_INTERNAL_SERVER_ERROR,
+            self::REPOSITORY_ITERATOR_EXPECTED_STRING_LAST_ID,
+            'Expected string as last element of ids array.'
+        );
+    }
+
     public static function invalidApiCriteriaIds(self $previous): self
     {
         return new self(
@@ -252,6 +266,16 @@ class DataAbstractionLayerException extends HttpException
             self::VERSION_MERGE_ALREADY_LOCKED,
             'Merging of version {{ versionId }} is locked, as the merge is already running by another process.',
             ['versionId' => $versionId]
+        );
+    }
+
+    public static function entityNotVersionAware(string $entityName): self
+    {
+        return new self(
+            Response::HTTP_BAD_REQUEST,
+            self::ENTITY_NOT_VERSION_AWARE,
+            'Entity "{{ entityName }}" is not version aware',
+            ['entityName' => $entityName]
         );
     }
 
@@ -444,6 +468,16 @@ class DataAbstractionLayerException extends HttpException
     public static function missingTranslation(string $path, int $index): self
     {
         return new MissingTranslationLanguageException($path, $index);
+    }
+
+    public static function invalidUuid(string $uuid): self
+    {
+        return new self(
+            Response::HTTP_BAD_REQUEST,
+            self::INVALID_UUID,
+            'Invalid UUID provided: {{ uuid }}',
+            ['uuid' => $uuid]
+        );
     }
 
     public static function canNotFindAttribute(string $attribute, string $property): self
@@ -717,6 +751,11 @@ class DataAbstractionLayerException extends HttpException
         );
     }
 
+    public static function invalidEntityUuidException(string $uuid): InvalidEntityUuidException
+    {
+        return new InvalidEntityUuidException($uuid);
+    }
+
     public static function invalidEnumField(string $field, string $actualType): self
     {
         return new self(
@@ -808,11 +847,15 @@ class DataAbstractionLayerException extends HttpException
 
     /**
      * @deprecated tag:v6.8.0 - reason:return-type-change - Will return self
+     *
+     * @phpstan-ignore phpat.restrictNamespacesInCore (Don't do that! This will be fixed with the next major version as it is not used anymore)
      */
     public static function configNotFound(): self|ElasticsearchProductException
     {
-        if (!Feature::isActive('v6.8.0.0')) {
-            throw ElasticsearchProductException::configNotFound();
+        /** @phpstan-ignore phpat.restrictNamespacesInCore */
+        if (!Feature::isActive('v6.8.0.0') && class_exists(ElasticsearchProductException::class)) {
+            /** @phpstan-ignore phpat.restrictNamespacesInCore */
+            return ElasticsearchProductException::configNotFound();
         }
 
         return new self(
@@ -884,6 +927,16 @@ class DataAbstractionLayerException extends HttpException
             self::DBAL_MISSING_VERSION_FIELD,
             'Missing `VersionField` in "{{ definitionClass }}"',
             ['definitionClass' => $definitionClass]
+        );
+    }
+
+    public static function entityNotVersionable(string $entityName): self
+    {
+        return new self(
+            Response::HTTP_INTERNAL_SERVER_ERROR,
+            self::ENTITY_NOT_VERSIONABLE,
+            'Entity {{ entityName }} is not versionable',
+            ['entityName' => $entityName]
         );
     }
 

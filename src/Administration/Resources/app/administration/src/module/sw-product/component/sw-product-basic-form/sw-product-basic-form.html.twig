@@ -63,6 +63,7 @@
 
         <mt-text-field
             v-model="product.productNumber"
+            required
             :error="productProductNumberError"
             :disabled="!allowEdit"
             :label="$tc('sw-product.basicForm.labelProductNumber')"
@@ -110,6 +111,7 @@
                     :error="productMarkAsTopsellerError"
                     :is-inheritance-field="props.isInheritField"
                     :is-inherited="props.isInherited"
+                    :inherited-value="parentProduct.markAsTopseller"
                     :help-text="highlightHelpText"
                     :label="$tc('sw-product.settingsForm.labelMarkAsTopseller')"
                     :disabled="props.isInherited || !allowEdit"

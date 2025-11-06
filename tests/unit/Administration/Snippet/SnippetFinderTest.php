@@ -16,7 +16,6 @@ use Shopware\Administration\Snippet\SnippetFinder;
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\Plugin\KernelPluginCollection;
 use Shopware\Core\Framework\Plugin\KernelPluginLoader\KernelPluginLoader;
-use Shopware\Core\Framework\Test\TestCaseHelper\ReflectionHelper;
 use Shopware\Core\Kernel;
 use Shopware\Core\System\Language\LanguageCollection;
 use Shopware\Core\System\Language\LanguageDefinition;
@@ -194,7 +193,7 @@ class SnippetFinderTest extends TestCase
     }
 
     /**
-     * @return array<string, array{appSnippets: array<string, mixed>}>
+     * @return iterable<string, array{appSnippets: array<string, mixed>}>
      */
     public static function validAppSnippetsDataProvider(): iterable
     {
@@ -223,7 +222,7 @@ class SnippetFinderTest extends TestCase
     }
 
     /**
-     * @return array<string, array{before: array<string, mixed>, after: array<string, mixed>}>
+     * @return iterable<string, array{before: array<string, mixed>, after: array<string, mixed>}>
      */
     public static function sanitizeAppSnippetDataProvider(): iterable
     {
@@ -270,19 +269,25 @@ class SnippetFinderTest extends TestCase
 
         $adminBundle = $this->createMock(Administration::class);
 
+        $adminBundleFileName = (new \ReflectionClass(Administration::class))->getFileName();
+        static::assertNotFalse($adminBundleFileName);
+
         $adminBundle
             ->method('getPath')
-            ->willReturn(\dirname((string) ReflectionHelper::getFileName(Administration::class)));
+            ->willReturn(\dirname($adminBundleFileName));
 
-        $property = ReflectionHelper::getProperty(Administration::class, 'name');
+        $property = new \ReflectionProperty(Administration::class, 'name');
         $property->setValue($adminBundle, 'Administration');
 
         $storefrontBundle = $this->createMock(Storefront::class);
+        $storefrontBundleFileName = (new \ReflectionClass(Storefront::class))->getFileName();
+        static::assertNotFalse($storefrontBundleFileName);
+
         $storefrontBundle
             ->method('getPath')
-            ->willReturn(\dirname((string) ReflectionHelper::getFileName(Storefront::class)));
+            ->willReturn(\dirname($storefrontBundleFileName));
 
-        $property = ReflectionHelper::getProperty(Storefront::class, 'name');
+        $property = new \ReflectionProperty(Storefront::class, 'name');
         $property->setValue($storefrontBundle, 'Storefront');
 
         $bundles = [
@@ -325,6 +330,7 @@ class SnippetFinderTest extends TestCase
             new LanguageDtoCollection([new LanguageDto('es-ES', 'Español')]),
             new PluginMappingCollection(),
             new Uri('http://localhost:8000/metadata.json'),
+            ['de-DE'],
         );
         $loader = $this->getTranslationLoader($config);
 
@@ -349,6 +355,7 @@ class SnippetFinderTest extends TestCase
             new LanguageDtoCollection([new LanguageDto('es-ES', 'Español')]),
             new PluginMappingCollection(),
             new Uri('http://localhost:8000/metadata.json'),
+            ['de-DE'],
         );
         $loader = $this->getTranslationLoader($config);
         $this->createSnippetFixtures($this->filesystem, $loader);
@@ -366,6 +373,31 @@ class SnippetFinderTest extends TestCase
             'plugin_administration' => 'Plugin admin',
             'shop_administration' => 'Platform admin',
         ], $snippets);
+    }
+
+    public function testFinderSkipsExcludedLocales(): void
+    {
+        $config = new TranslationConfig(
+            new Uri('http://localhost:8000'),
+            ['es-ES'],
+            ['activePlugin'],
+            new LanguageDtoCollection([new LanguageDto('es-ES', 'Español')]),
+            new PluginMappingCollection(),
+            new Uri('http://localhost:8000/metadata.json'),
+            ['es-ES'],
+        );
+        $loader = $this->getTranslationLoader($config);
+        $this->createSnippetFixtures($this->filesystem, $loader);
+
+        $pluginPath = __DIR__ . '/_fixtures/activePlugin';
+        $snippetFinder = $this->getSnippetFinder(
+            kernel: $this->getKernelMock(pluginPaths: [$pluginPath], activePluginPaths: ['activePlugin']),
+            connection: $this->getConnectionMock('es-ES', []),
+            translationConfig: $config,
+        );
+
+        $snippets = $snippetFinder->findSnippets('es-ES');
+        static::assertEmpty($snippets);
     }
 
     /**
@@ -421,6 +453,7 @@ class SnippetFinderTest extends TestCase
             new LanguageDtoCollection([new LanguageDto('en-GB', 'English (UK')]),
             new PluginMappingCollection(),
             new Uri('http://localhost:8000/metadata.json'),
+            ['de-DE'],
         );
 
         $kernelMock = $kernel ?? $this->getKernelMock();
