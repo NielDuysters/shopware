@@ -1105,6 +1105,8 @@ class DataAbstractionLayerException extends HttpException
             self::ENTITY_INDEXER_NOT_FOUND,
             self::$couldNotFindMessage,
             ['entity' => 'entity indexer', 'field' => 'name', 'value' => $name],
+         );
+     }
     public static function scoreNotFound(string $id): self
     {
         return new self(
