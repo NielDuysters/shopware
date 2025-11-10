@@ -7,8 +7,27 @@ The tax-free detection logic if the cart changed to handle B2B and B2C customers
 Previously, enabling "Tax-free for B2C" in the country settings also affected B2B customers.
 Now, tax rules are applied **correctly** based on customer type.
 
-
 ## API
+
+### Add the possibility to specify indexer in context
+
+When you want to specify which indexer should run, you can add the `EntityIndexerRegistry::EXTENSION_INDEXER_ONLY` extension to the context as follows:
+
+```php
+$context->addExtension(EntityIndexerRegistry::EXTENSION_INDEXER_ONLY,
+    new ArrayEntity([
+        ProductIndexer::STOCK_UPDATER // Only execute STOCK_UPDATER.
+    ]),
+);
+```
+
+When making a call to the Sync API, specify the required indexer in the header:
+
+```bash
+curl -X POST "http://localhost:8000/api/_action/sync" \
+-H "indexing-only: product.stock" \
+#...
+```
 
 ## Core
 
@@ -20,7 +39,7 @@ The new dependency `symfony/polyfill-php85` was added, to make it possible to al
 
 ### Removal of old `changelog` handling
 As we changed how we process and generate changelogs the "old" changelog files are no longer needed.
-Therefore, we removed all the internal code used to generate and validate them. 
+Therefore, we removed all the internal code used to generate and validate them.
 The whole `Shopware\Core\Framework\Changelog` namespace was removed. The code is not needed anymore, you should adjust the `RELEASE_INFO` and `UPGRADE` files manually instead.
 
 ### Deprecated the `\Shopware\Core\Framework\Test\TestCaseHelper\ReflectionHelper`
