@@ -76,6 +76,9 @@ Payment tokens are no longer deleted immediately after use. A new scheduled task
 
 ## Storefront
 
+### Language selector twig blocks
+New extensible Twig blocks `layout_header_actions_language_widget_content_inner` and `layout_header_actions_languages_widget_form_items_flag_inner` have been added to the language selector to allow custom flag implementations.
+
 ### Added specific `add-product-by-number` template
 
 The `page_checkout_cart_add_product*` blocks inside `@Storefront/storefront/page/checkout/cart/index.html.twig` are deprecated and a new template `@Storefront/storefront/component/checkout/add-product-by-number.html.twig` was added.
