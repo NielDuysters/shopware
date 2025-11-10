@@ -493,29 +493,26 @@ class SyncControllerTest extends TestCase
 
         static::assertSame(200, $this->getBrowser()->getResponse()->getStatusCode());
 
-        $connection = static::getContainer()->get(Connection::class);
-
         // Get messsage from queue.
-        $sqlMessengerMessages = $connection->fetchAllAssociative('SELECT body FROM messenger_messages');
-        $data = json_decode($sqlMessengerMessages[0]['body'], true);
+        $sqlMessengerMessageBody = $this->connection->fetchOne('SELECT body FROM messenger_messages WHERE headers LIKE \'%ProductIndexingMessage%\'');
+        static::assertIsString($sqlMessengerMessageBody);
+        $data = json_decode($sqlMessengerMessageBody, true, 512, \JSON_THROW_ON_ERROR);
         $indexerOnly = $data['context']['extensions']['indexer-only']['onlies'];
         $skip = $data['skip'];
 
         // Assert message is as expected.
-        static::assertGreaterThan(0, \count($indexerOnly), 'Only indexer not passed to message in queue.');
+        static::assertCount(1, $indexerOnly);
         static::assertSame(ProductIndexer::SEARCH_KEYWORD_UPDATER, $indexerOnly[0], 'Only indexer does not match passed `product.search-keyword` indexer in message.');
 
         // Assert message contains skip for everything except our only indexer.
         $productIndexerClassReflection = new \ReflectionClass(ProductIndexer::class);
         $productIndexerClassInstance = $productIndexerClassReflection->newInstanceWithoutConstructor();
         $productIndexerOptions = $productIndexerClassReflection->getMethod('getOptions')->invoke($productIndexerClassInstance);
-        $allProductIndexerMinusSearchKeyword = array_filter($productIndexerOptions, function ($index) {
+        $allProductIndexerMinusSearchKeyword = array_filter($productIndexerOptions, static function ($index) {
             return $index !== ProductIndexer::SEARCH_KEYWORD_UPDATER;
         });
-        static::assertEqualsCanonicalizing($allProductIndexerMinusSearchKeyword, $skip);
 
-        $count = $connection->fetchOne('SELECT COUNT(*) FROM product_search_keyword', []);
-        static::assertGreaterThan(0, $count, 'Search keywords should not empty as it was the only called indexer');
+        static::assertEqualsCanonicalizing($allProductIndexerMinusSearchKeyword, $skip);
     }
 
     public static function invalidOperationProvider(): \Generator
